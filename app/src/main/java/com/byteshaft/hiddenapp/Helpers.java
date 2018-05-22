@@ -27,7 +27,7 @@ public class Helpers {
     }
 
     public static void setAppVisibility(Context ctx, boolean visible) {
-        ComponentName component = new ComponentName(ctx, MainActivity.class);
+        ComponentName component = new ComponentName("com.byteshaft.hiddenapp", "com.byteshaft.hiddenapp.MainActivity");
         PackageManager pm = ctx.getPackageManager();
         pm.setComponentEnabledSetting(
                 component,

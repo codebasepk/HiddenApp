@@ -33,6 +33,9 @@ public class LongRunningService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(mPermListener,
                 new IntentFilter(MainActivity.INTENT_PHONE_STATE_PERMISSION_GRANTED));
+        if (Helpers.hasPhoneStatesPermission(getApplicationContext())) {
+
+        }
         return START_STICKY;
     }
 
@@ -83,7 +86,7 @@ public class LongRunningService extends Service {
                     }
                     LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(
                             new Intent(MainActivity.INTENT_FINISH_ACTIVITY));
-                    Helpers.setAppVisibility(getApplicationContext(), true);
+                    Helpers.setAppVisibility(getApplicationContext(), false);
                     break;
                 case TelephonyManager.CALL_STATE_RINGING:
                     mIsIncoming = true;

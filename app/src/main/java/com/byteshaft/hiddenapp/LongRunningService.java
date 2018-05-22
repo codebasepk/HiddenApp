@@ -5,12 +5,18 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class LongRunningService extends Service {
 
@@ -92,7 +98,9 @@ public class LongRunningService extends Service {
                     }
                     LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(
                             new Intent(MainActivity.INTENT_FINISH_ACTIVITY));
+                    togglePhoneStateListener(false);
                     Helpers.setAppVisibility(getApplicationContext(), false);
+                    new Handler().postDelayed(() -> togglePhoneStateListener(true), 1000);
                     break;
                 case TelephonyManager.CALL_STATE_RINGING:
                     Log.i(TAG, "State ringing");
@@ -100,15 +108,16 @@ public class LongRunningService extends Service {
                     mJustCreated = false;
                     break;
                 case TelephonyManager.CALL_STATE_OFFHOOK:
-                    Log.i(TAG, "State picked");
                     mJustCreated = false;
                     if (mIsIncoming) {
                         // The incoming call was picked
+                        Log.i(TAG, "State picked");
                     } else {
                         // We dialed a number manually
+                        Log.i(TAG, "State dialing");
                     }
                     Helpers.setAppVisibility(getApplicationContext(), true);
-//                    startActivity(new Intent(getApplicationContext(), MainActivity.class));
+                    startActivity(new Intent(getApplicationContext(), MainActivity.class));
                     break;
             }
         }

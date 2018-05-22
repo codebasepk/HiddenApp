@@ -10,15 +10,18 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 
 public class LongRunningService extends Service {
+
+    private static final String TAG = LongRunningService.class.getName();
 
     private MyPhoneStateListener mPhoneStateListener;
 
     private BroadcastReceiver mPermListener = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            System.out.println("Start lisening");
+            Log.i(TAG, "Start listening");
             togglePhoneStateListener(true);
         }
     };
@@ -31,10 +34,11 @@ public class LongRunningService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i(TAG, "onStartCommand()");
         LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(mPermListener,
                 new IntentFilter(MainActivity.INTENT_PHONE_STATE_PERMISSION_GRANTED));
         if (Helpers.hasPhoneStatesPermission(getApplicationContext())) {
-
+            togglePhoneStateListener(true);
         }
         return START_STICKY;
     }
@@ -48,6 +52,7 @@ public class LongRunningService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.i(TAG, "onDestroyed()");
         togglePhoneStateListener(false);
         LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(
                 mPermListener);
@@ -80,6 +85,7 @@ public class LongRunningService extends Service {
         public void onCallStateChanged(int state, String incomingNumber) {
             switch (state) {
                 case TelephonyManager.CALL_STATE_IDLE:
+                    Log.i(TAG, "State Idle");
                     mIsIncoming = false;
                     if (mJustCreated) {
                         return;
@@ -89,17 +95,18 @@ public class LongRunningService extends Service {
                     Helpers.setAppVisibility(getApplicationContext(), false);
                     break;
                 case TelephonyManager.CALL_STATE_RINGING:
+                    Log.i(TAG, "State ringing");
                     mIsIncoming = true;
                     mJustCreated = false;
                     break;
                 case TelephonyManager.CALL_STATE_OFFHOOK:
+                    Log.i(TAG, "State picked");
                     mJustCreated = false;
                     if (mIsIncoming) {
                         // The incoming call was picked
                     } else {
                         // We dialed a number manually
                     }
-                    System.out.println("CALL PICKED");
                     Helpers.setAppVisibility(getApplicationContext(), true);
 //                    startActivity(new Intent(getApplicationContext(), MainActivity.class));
                     break;

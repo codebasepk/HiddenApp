@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.v4.app.ActivityCompat;
+import android.util.Log;
 
 import static android.Manifest.permission.READ_PHONE_STATE;
 
@@ -27,6 +28,7 @@ public class Helpers {
     }
 
     public static void setAppVisibility(Context ctx, boolean visible) {
+        Log.i("HELPERS", "Setting app visibility to " + visible);
         ComponentName component = new ComponentName(ctx, MainActivity.class);
         PackageManager pm = ctx.getPackageManager();
         pm.setComponentEnabledSetting(

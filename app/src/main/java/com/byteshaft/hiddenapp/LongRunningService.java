@@ -13,22 +13,41 @@ import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class LongRunningService extends Service {
 
+    public static final String INTENT_TOGGLE_VISIBILITY =
+            "com.byteshaft.hiddenapp.toggle_visiblity";
+
     private static final String TAG = LongRunningService.class.getName();
 
     private MyPhoneStateListener mPhoneStateListener;
+    private LocalBroadcastManager mBroadcaster;
 
-    private BroadcastReceiver mPermListener = new BroadcastReceiver() {
+    private BroadcastReceiver mLocalBroadcastListener = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.i(TAG, "Start listening");
-            togglePhoneStateListener(true);
+            String action = intent.getAction();
+            if (action == null) {
+                return;
+            }
+            if (action.equals(MainActivity.INTENT_PHONE_STATE_PERMISSION_GRANTED)) {
+                Log.i(TAG, "Start listening");
+                togglePhoneStateListener(true);
+            } else if (action.equals(INTENT_TOGGLE_VISIBILITY)) {
+                boolean enable = intent.getBooleanExtra("enable_app", true);
+                if (!enable) {
+                    togglePhoneStateListener(false);
+                    ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+                    executorService.schedule(() -> togglePhoneStateListener(true), 12, TimeUnit.SECONDS);
+                }
+
+                Helpers.setAppVisibility(getApplicationContext(), enable);
+            }
         }
     };
 
@@ -36,12 +55,15 @@ public class LongRunningService extends Service {
     public void onCreate() {
         super.onCreate();
         mPhoneStateListener = new MyPhoneStateListener();
+        mBroadcaster = LocalBroadcastManager.getInstance(getApplicationContext());
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "onStartCommand()");
-        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(mPermListener,
+        mBroadcaster.registerReceiver(mLocalBroadcastListener,
+                new IntentFilter(INTENT_TOGGLE_VISIBILITY));
+        mBroadcaster.registerReceiver(mLocalBroadcastListener,
                 new IntentFilter(MainActivity.INTENT_PHONE_STATE_PERMISSION_GRANTED));
         if (Helpers.hasPhoneStatesPermission(getApplicationContext())) {
             togglePhoneStateListener(true);
@@ -60,16 +82,14 @@ public class LongRunningService extends Service {
         super.onDestroy();
         Log.i(TAG, "onDestroyed()");
         togglePhoneStateListener(false);
-        LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(
-                mPermListener);
+        mBroadcaster.unregisterReceiver(mLocalBroadcastListener);
     }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         super.onTaskRemoved(rootIntent);
         togglePhoneStateListener(false);
-        LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(
-                mPermListener);
+        mBroadcaster.unregisterReceiver(mLocalBroadcastListener);
     }
 
     private void togglePhoneStateListener(boolean enable) {
@@ -96,11 +116,11 @@ public class LongRunningService extends Service {
                     if (mJustCreated) {
                         return;
                     }
-                    LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(
-                            new Intent(MainActivity.INTENT_FINISH_ACTIVITY));
+                    mBroadcaster.sendBroadcast(new Intent(MainActivity.INTENT_FINISH_ACTIVITY));
                     togglePhoneStateListener(false);
+                    ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+                    exec.schedule(() -> togglePhoneStateListener(true), 12, TimeUnit.SECONDS);
                     Helpers.setAppVisibility(getApplicationContext(), false);
-                    new Handler().postDelayed(() -> togglePhoneStateListener(true), 1000);
                     break;
                 case TelephonyManager.CALL_STATE_RINGING:
                     Log.i(TAG, "State ringing");
@@ -117,8 +137,11 @@ public class LongRunningService extends Service {
                         Log.i(TAG, "State dialing");
                     }
                     Helpers.setAppVisibility(getApplicationContext(), true);
-                    startActivity(new Intent(getApplicationContext(), MainActivity.class));
+                    ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+                    executorService.schedule(() -> startActivity(new Intent(getApplicationContext(), MainActivity.class)), 12, TimeUnit.SECONDS);
                     break;
+                default:
+                    System.out.println("CALLED");
             }
         }
     }

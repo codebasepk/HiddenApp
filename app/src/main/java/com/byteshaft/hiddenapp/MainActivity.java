@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver mFinishBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            MainActivity.this.finish();
+            finish();
         }
     };
 
@@ -63,7 +63,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_NO_BATTERY_OPTIMIZATIONS) {
             if (resultCode == SUCCESS_CODE) {
-//                Helpers.setAppVisibility(getApplicationContext(), false);
+                Intent intent = new Intent(LongRunningService.INTENT_TOGGLE_VISIBILITY);
+                intent.putExtra("enable_app", false);
+                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
             } else {
 
             }
